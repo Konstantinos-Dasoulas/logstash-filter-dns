@@ -5,7 +5,7 @@ require "lru_redux"
 require "resolv"
 require "timeout"
 require "logstash/filters/resolv_patch"
-require "log_warnings"
+
 
 java_import 'java.net.IDN'
 
@@ -72,7 +72,7 @@ class LogStash::Filters::DNS < LogStash::Filters::Base
   config :hostsfile, :validate => :array
 
   # Choose whether to log the warnings of a filed or not ( boolean )
-  config :log_warnings, :validate => :string, :default => "true"
+  config :log_warnings, :validate => :boolean, :default => true
 
   attr_reader :hit_cache
   attr_reader :failed_cache
@@ -235,10 +235,8 @@ class LogStash::Filters::DNS < LogStash::Filters::Base
         return
       rescue Resolv::ResolvTimeout, Timeout::Error
         @failed_cache[raw] = true if @failed_cache
-          if @log_warnings == true
             @logger.warn("DNS: timeout on resolving address.",
-                      :field => field, :value => raw)
-          end
+                      :field => field, :value => raw) if @log_warnings
         return
       rescue SocketError => e
         @logger.error("DNS: Encountered SocketError.",
